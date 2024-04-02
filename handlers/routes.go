@@ -7,4 +7,5 @@ import (
 
 func InitialiseRoutes(e *gin.Engine, sfGroup *singleflight.Group) {
 	e.GET("get_user_hex", GetSteamUserHex(sfGroup))
+	e.GET("liveness", LivenessProbe())
 }
