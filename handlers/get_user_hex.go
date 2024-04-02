@@ -36,7 +36,7 @@ var GetSteamUserHex = func(steamService *services.SteamService, sfGroup *singlef
 				return strings.TrimSpace(elem) != ""
 			})
 			if len(split) > 2 {
-				if !strings.HasPrefix(query, "https://steamcommunity.com") {
+				if is_steam_url := regexp.MustCompile(`https?:\/\/(www\.)?steamcommunity\.com\/(profiles|id)\/(.*)`).MatchString(query); is_steam_url {
 					query = "invalid"
 				} else {
 					typeKw := split[len(split)-2]
