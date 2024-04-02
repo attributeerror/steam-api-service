@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/attributeerror/steam-api-service/handlers/response_models"
 	"github.com/attributeerror/steam-api-service/services"
+	"github.com/attributeerror/steam-api-service/utilities"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/singleflight"
 )
@@ -30,16 +32,30 @@ var GetSteamUserHex = func(steamService *services.SteamService, sfGroup *singlef
 		} else if profileId != "" {
 			groupId = profileId
 		} else if query != "" {
-			split := strings.Split(query, "/")
-			typeKw := split[len(split)-2]
-			if typeKw == "profiles" {
-				profileId = split[len(split)-1]
-				query = profileId
-			} else if typeKw == "id" {
-				vanityUrl = split[len(split)-1]
-				query = vanityUrl
+			split := utilities.Filter(strings.Split(query, "/"), func(elem string) bool {
+				return strings.TrimSpace(elem) != ""
+			})
+			if len(split) > 2 {
+				if !strings.HasPrefix(query, "https://steamcommunity.com") {
+					query = "invalid"
+				} else {
+					typeKw := split[len(split)-2]
+					if typeKw == "profiles" {
+						profileId = split[len(split)-1]
+						query = profileId
+					} else if typeKw == "id" {
+						vanityUrl = split[len(split)-1]
+						query = vanityUrl
+					} else {
+						query = "invalid"
+					}
+				}
 			} else {
-				query = "invalid"
+				if is_numeric := regexp.MustCompile(`\d`).MatchString(query); is_numeric {
+					profileId = query
+				} else {
+					vanityUrl = query
+				}
 			}
 		}
 
