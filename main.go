@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/attributeerror/steam-api-service/handlers"
+	"github.com/attributeerror/steam-api-service/repositories"
+	"github.com/attributeerror/steam-api-service/services"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"golang.org/x/sync/singleflight"
@@ -19,8 +21,13 @@ func main() {
 	engine.Use(gin.Recovery())
 	engine.Use(gin.Logger())
 
-	sfGroup := singleflight.Group{}
-	handlers.InitialiseRoutes(engine, &sfGroup)
+	sfGroup := &singleflight.Group{}
+
+	steamRepository := &repositories.SteamRepository{}
+	steamService := &services.SteamService{
+		SteamRepository: steamRepository,
+	}
+	handlers.InitialiseRoutes(engine, steamService, sfGroup)
 
 	port, _ := loadenvvar("PORT", false)
 	if port == nil {

@@ -22,3 +22,6 @@ go.work
 
 # Environment file
 *.env
+
+# IDE Files
+.vscode/

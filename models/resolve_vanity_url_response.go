@@ -1,4 +1,4 @@
-package response_models
+package models
 
 type (
 	ResolveVanityURLResponse struct {

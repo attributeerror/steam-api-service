@@ -1,56 +1,62 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
-	"github.com/attributeerror/steam-api-service/configuration"
 	"github.com/attributeerror/steam-api-service/handlers/response_models"
+	"github.com/attributeerror/steam-api-service/services"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/singleflight"
 )
 
 var (
-	ErrRequireAtLeastOneQuery = errors.New("missing at least one required parameter: vanity_url, or profile_id")
+	ErrRequireAtLeastOneQuery = errors.New("missing at least one required parameter: vanity_url, profile_id, or query")
+	ErrInvalidSteamUrl        = errors.New("'query' parameter provided, but it wasn't a valid Steam URL")
 )
 
-var GetSteamUserHex = func(sfGroup *singleflight.Group) func(c *gin.Context) {
+var GetSteamUserHex = func(steamService *services.SteamService, sfGroup *singleflight.Group) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		configuration := configuration.GetConfiguration()
 		vanityUrl := c.DefaultQuery("vanity_url", "")
 		profileId := c.DefaultQuery("profile_id", "")
+		query := c.DefaultQuery("query", "")
 
-		var groupId string
+		var groupId string = ""
 		if vanityUrl != "" {
 			groupId = vanityUrl
-		} else {
+		} else if profileId != "" {
 			groupId = profileId
+		} else if query != "" {
+			split := strings.Split(query, "/")
+			typeKw := split[len(split)-2]
+			if typeKw == "profiles" {
+				profileId = split[len(split)-1]
+				query = profileId
+			} else if typeKw == "id" {
+				vanityUrl = split[len(split)-1]
+				query = vanityUrl
+			} else {
+				query = "invalid"
+			}
 		}
 
 		response, err, _ := sfGroup.Do(groupId, func() (interface{}, error) {
+			if query == "invalid" {
+				return nil, ErrInvalidSteamUrl
+			}
 			if vanityUrl == "" && profileId == "" {
 				return nil, ErrRequireAtLeastOneQuery
 			}
 
 			if vanityUrl != "" {
-				vanityUrlResp, err := http.Get(fmt.Sprintf("%s/ISteamUser/ResolveVanityURL/v0001/?key=%s&vanityurl=%s", configuration.SteamApiBaseUrl, configuration.SteamApiKey, vanityUrl))
+				var err error = nil
+				profileId, err = steamService.ResolveVanityUrlToProfileId(vanityUrl)
+
 				if err != nil {
 					return nil, err
-				}
-				defer vanityUrlResp.Body.Close()
-
-				var resolveVanityUrlBody response_models.ResolveVanityURLResponse
-				if err := json.NewDecoder(vanityUrlResp.Body).Decode(&resolveVanityUrlBody); err != nil {
-					return nil, err
-				}
-
-				if resolveVanityUrlBody.Response.Success == 1 {
-					profileId = resolveVanityUrlBody.Response.SteamId
-				} else {
-					return nil, fmt.Errorf("error from Steam API: %s", resolveVanityUrlBody.Response.Message)
 				}
 			}
 
