@@ -36,7 +36,7 @@ var GetSteamUserHex = func(steamService *services.SteamService, sfGroup *singlef
 				return strings.TrimSpace(elem) != ""
 			})
 			if len(split) > 2 {
-				if is_steam_url := regexp.MustCompile(`https?:\/\/(www\.)?steamcommunity\.com\/(profiles|id)\/(.*)`).MatchString(query); !is_steam_url {
+				if is_steam_url := regexp.MustCompile(`^https?:\/\/(www\.)?steamcommunity\.com\/(profiles|id)\/(.*)$`).MatchString(query); !is_steam_url {
 					query = "invalid"
 				} else {
 					typeKw := split[len(split)-2]
@@ -51,7 +51,7 @@ var GetSteamUserHex = func(steamService *services.SteamService, sfGroup *singlef
 					}
 				}
 			} else {
-				if is_numeric := regexp.MustCompile(`\d`).MatchString(query); is_numeric {
+				if is_numeric := regexp.MustCompile(`^\d*$`).MatchString(query); is_numeric {
 					profileId = query
 				} else {
 					vanityUrl = query
