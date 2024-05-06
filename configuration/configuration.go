@@ -3,14 +3,20 @@ package configuration
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
-var configOnce sync.Once
-var configuration *Configuration
+var (
+	configOnce                  sync.Once
+	configuration               *Configuration
+	defaultCachingExpiration    time.Duration = 3600 * time.Second
+	defaultCachingPurgeDuration time.Duration = 600 * time.Second
+)
 
 func GetConfiguration() *Configuration {
 	configOnce.Do(func() {
@@ -22,11 +28,35 @@ func GetConfiguration() *Configuration {
 		var golangEnv string
 		var steamApiBaseUrl string
 		var steamApiKey string
+		var cachingExpirationDuration time.Duration
+		var cachingPurgeDuration time.Duration
 
 		if envVar := getEnvironmentVariable("GOLANG_ENVIRONMENT", false); envVar != nil {
 			golangEnv = strings.ToLower(envVar.Value)
 		} else {
 			golangEnv = "local"
+		}
+
+		if envVar := getEnvironmentVariable("CACHING_EXPIRATION_SECONDS", false); envVar != nil {
+			parsedEnvVar, err := strconv.ParseInt(envVar.Value, 10, 64)
+			if err != nil {
+				cachingExpirationDuration = defaultCachingExpiration
+			} else {
+				cachingExpirationDuration = time.Duration(parsedEnvVar) * time.Second
+			}
+		} else {
+			cachingExpirationDuration = defaultCachingExpiration
+		}
+
+		if envVar := getEnvironmentVariable("CACHING_PURGE_SECONDS", false); envVar != nil {
+			parsedEnvVar, err := strconv.ParseInt(envVar.Value, 10, 64)
+			if err != nil {
+				cachingPurgeDuration = defaultCachingPurgeDuration
+			} else {
+				cachingPurgeDuration = time.Duration(parsedEnvVar) * time.Second
+			}
+		} else {
+			cachingPurgeDuration = defaultCachingPurgeDuration
 		}
 
 		if envVar := getEnvironmentVariable("STEAM_API_BASE_URL", true); envVar != nil {
@@ -37,9 +67,11 @@ func GetConfiguration() *Configuration {
 		}
 
 		configuration = &Configuration{
-			GoEnvironment:   golangEnv,
-			SteamApiBaseUrl: steamApiBaseUrl,
-			SteamApiKey:     steamApiKey,
+			GoEnvironment:             golangEnv,
+			SteamApiBaseUrl:           steamApiBaseUrl,
+			SteamApiKey:               steamApiKey,
+			CachingExpirationDuration: cachingExpirationDuration,
+			CachingPurgeDuration:      cachingPurgeDuration,
 		}
 	})
 
@@ -48,9 +80,11 @@ func GetConfiguration() *Configuration {
 
 type (
 	Configuration struct {
-		GoEnvironment   string
-		SteamApiBaseUrl string
-		SteamApiKey     string
+		GoEnvironment             string
+		SteamApiBaseUrl           string
+		SteamApiKey               string
+		CachingExpirationDuration time.Duration
+		CachingPurgeDuration      time.Duration
 	}
 
 	EnvironmentVariable struct {
