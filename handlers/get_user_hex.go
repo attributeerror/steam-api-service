@@ -59,6 +59,11 @@ var GetSteamUserHex = func(steamService *services.SteamService, sfGroup *singlef
 			}
 		}
 
+		if cached_item, ok := services.GetCache().Get(groupId); ok {
+			c.JSON(http.StatusOK, cached_item)
+			return
+		}
+
 		response, err, _ := sfGroup.Do(groupId, func() (interface{}, error) {
 			if query == "invalid" {
 				return nil, ErrInvalidSteamUrl
@@ -104,6 +109,7 @@ var GetSteamUserHex = func(steamService *services.SteamService, sfGroup *singlef
 		}
 
 		if responseModel, ok := response.(*response_models.GetUserHexResponse); ok {
+			services.GetCache().Update(groupId, responseModel)
 			c.JSON(http.StatusOK, responseModel)
 			return
 		}
