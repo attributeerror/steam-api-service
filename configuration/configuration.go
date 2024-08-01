@@ -25,6 +25,7 @@ func GetConfiguration() *Configuration {
 			panic(fmt.Errorf("error whilst loading .env file: %w", err))
 		}
 
+		var port string
 		var golangEnv string
 		var steamApiBaseUrl string
 		var steamApiKey string
@@ -65,8 +66,14 @@ func GetConfiguration() *Configuration {
 		if envVar := getEnvironmentVariable("STEAM_API_KEY", true); envVar != nil {
 			steamApiKey = envVar.Value
 		}
+		if envVar := getEnvironmentVariable("PORT", false); envVar != nil {
+			port = fmt.Sprintf(":%s", envVar.Value)
+		} else {
+			port = ":80"
+		}
 
 		configuration = &Configuration{
+			Port:                      port,
 			GoEnvironment:             golangEnv,
 			SteamApiBaseUrl:           steamApiBaseUrl,
 			SteamApiKey:               steamApiKey,
@@ -80,6 +87,7 @@ func GetConfiguration() *Configuration {
 
 type (
 	Configuration struct {
+		Port                      string
 		GoEnvironment             string
 		SteamApiBaseUrl           string
 		SteamApiKey               string

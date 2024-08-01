@@ -37,7 +37,10 @@ var GetSteamUserHex = func(steamService *services.SteamService, sfGroup *singlef
 			})
 			if len(split) > 2 {
 				if is_steam_url := regexp.MustCompile(`^https?:\/\/(www\.)?steamcommunity\.com\/(profiles|id)\/(.*)$`).MatchString(query); !is_steam_url {
-					query = "invalid"
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": ErrInvalidSteamUrl.Error(),
+					})
+					return
 				} else {
 					typeKw := split[len(split)-2]
 					if typeKw == "profiles" {
@@ -47,7 +50,10 @@ var GetSteamUserHex = func(steamService *services.SteamService, sfGroup *singlef
 						vanityUrl = split[len(split)-1]
 						query = vanityUrl
 					} else {
-						query = "invalid"
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": ErrInvalidSteamUrl.Error(),
+						})
+						return
 					}
 				}
 			} else {
@@ -57,6 +63,7 @@ var GetSteamUserHex = func(steamService *services.SteamService, sfGroup *singlef
 					vanityUrl = query
 				}
 			}
+			groupId = query
 		}
 
 		if cached_item, ok := services.GetCache().Get(groupId); ok {
@@ -65,9 +72,6 @@ var GetSteamUserHex = func(steamService *services.SteamService, sfGroup *singlef
 		}
 
 		response, err, _ := sfGroup.Do(groupId, func() (interface{}, error) {
-			if query == "invalid" {
-				return nil, ErrInvalidSteamUrl
-			}
 			if vanityUrl == "" && profileId == "" {
 				return nil, ErrRequireAtLeastOneQuery
 			}
