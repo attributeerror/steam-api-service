@@ -1,12 +1,13 @@
 module github.com/attributeerror/steam-api-service
 
 go 1.21.5
+toolchain go1.24.1
 
 require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/joho/godotenv v1.5.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	golang.org/x/sync v0.11.0
+	golang.org/x/sync v0.13.0
 )
 
 require (
